@@ -2,9 +2,17 @@ import os
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, CommandHandler, ContextTypes
 
-# 🔐 Берём данные из Railway Variables
+# 🔐 Переменные из Railway
 TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = os.getenv("ADMIN_ID")  # ❗ убрали int()
+ADMIN_ID = os.getenv("ADMIN_ID")
+
+if not TOKEN:
+    raise Exception("BOT_TOKEN не задан в Variables")
+
+if not ADMIN_ID:
+    raise Exception("ADMIN_ID не задан в Variables")
+
+ADMIN_ID = int(ADMIN_ID)
 
 users = {}
 
@@ -36,7 +44,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = users[user_id]["step"]
 
     if step == 1:
-        users[user_id]["name"] = text
+        users[user_id]["class"] = text
         users[user_id]["step"] = 2
 
         await update.message.reply_text(
@@ -53,13 +61,11 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Новый ответ:\n"
             f"Username: @{username if username else 'нет'}\n"
             f"Имя: {first_name}\n"
-            f"Класс: {users[user_id]['name']}\n"
+            f"Класс: {users[user_id]['class']}\n"
             f"Чувства: {users[user_id]['feelings']}"
         )
 
-        # ❗ отправка админу (как строка)
-        if ADMIN_ID:
-            await context.bot.send_message(chat_id=int(ADMIN_ID), text=result)
+        await context.bot.send_message(chat_id=ADMIN_ID, text=result)
 
         await update.message.reply_text("Спасибо 👍")
         del users[user_id]
@@ -70,6 +76,5 @@ app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
 
-# ❗ исправлено имя
-if name == "main":
+if __name__ == "__main__":
     app.run_polling()
