@@ -4,7 +4,7 @@ from telegram.ext import ApplicationBuilder, MessageHandler, filters, CommandHan
 
 # 🔐 Берём данные из Railway Variables
 TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = int(os.getenv("ADMIN_ID"))
+ADMIN_ID = os.getenv("ADMIN_ID")  # ❗ убрали int()
 
 users = {}
 
@@ -57,7 +57,9 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Чувства: {users[user_id]['feelings']}"
         )
 
-        await context.bot.send_message(chat_id=ADMIN_ID, text=result)
+        # ❗ отправка админу (как строка)
+        if ADMIN_ID:
+            await context.bot.send_message(chat_id=int(ADMIN_ID), text=result)
 
         await update.message.reply_text("Спасибо 👍")
         del users[user_id]
@@ -68,5 +70,6 @@ app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
 
-if __name__ == "__main__":
+# ❗ исправлено имя
+if name == "main":
     app.run_polling()
