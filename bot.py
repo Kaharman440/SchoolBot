@@ -19,7 +19,7 @@ if not ADMIN_ID:
 
 users = {}
 
-# --- Клавиатуры ---
+# --- КЛАВИАТУРЫ ---
 lang_kb = ReplyKeyboardMarkup(
     [["Русский 🇷🇺", "Қазақша 🇰🇿"]],
     resize_keyboard=True
@@ -55,19 +55,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=lang_kb
     )
 
-# --- ОБРАБОТКА ---
+# --- ОСНОВНАЯ ЛОГИКА ---
 async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    text = update.message.text
+    text = update.message.text.strip()
 
     if user_id not in users:
         users[user_id] = {"step": 0}
 
     step = users[user_id]["step"]
 
-    # --- 0 Язык ---
+    # --- 0 ЯЗЫК ---
     if step == 0:
-        users[user_id]["lang"] = "ru" if "Рус" in text else "kz"
+        if text == "Русский 🇷🇺":
+            users[user_id]["lang"] = "ru"
+        elif text == "Қазақша 🇰🇿":
+            users[user_id]["lang"] = "kz"
+        else:
+            await update.message.reply_text("Пожалуйста, выберите язык кнопкой")
+            return
+
         users[user_id]["step"] = 1
 
         if users[user_id]["lang"] == "ru":
@@ -81,11 +88,10 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=anon_kb
             )
 
-    # --- 1 Анонимность ---
+    # --- 1 АНОНИМНОСТЬ ---
     elif step == 1:
-        users[user_id]["anon"] = text
-
         if "Не анонимно" in text or "Анонимді емес" in text:
+            users[user_id]["anon"] = False
             users[user_id]["step"] = 2
 
             if users[user_id]["lang"] == "ru":
@@ -93,6 +99,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await update.message.reply_text("Аты-жөніңізді жазыңыз:")
         else:
+            users[user_id]["anon"] = True
             users[user_id]["name"] = "Аноним"
             users[user_id]["step"] = 3
 
@@ -111,7 +118,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text("Рөліңізді таңдаңыз:", reply_markup=role_kb)
 
-    # --- 3 Роль ---
+    # --- 3 РОЛЬ ---
     elif step == 3:
         users[user_id]["role"] = text
 
@@ -131,7 +138,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await update.message.reply_text("Ұсыныстар мен шағымдар:")
 
-    # --- 4 Класс ---
+    # --- 4 КЛАСС ---
     elif step == 4:
         users[user_id]["class"] = text
         users[user_id]["step"] = 5
@@ -141,13 +148,13 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text("Ұсыныстар мен шағымдар:")
 
-    # --- 5 Финал ---
+    # --- 5 ФИНАЛ ---
     elif step == 5:
         users[user_id]["text"] = text
 
         user = update.effective_user
         username = f"@{user.username}" if user.username else "нет"
-        link = f"<a href='tg://user?id={user.id}'>Профиль</a>"
+        link = f"<a href='tg://user?id={user.id}'>Открыть профиль</a>"
 
         result = (
             f"📩 Новый ответ:\n\n"
