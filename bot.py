@@ -1,5 +1,5 @@
 import os
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
     MessageHandler,
@@ -21,23 +21,30 @@ users = {}
 
 # --- Клавиатуры ---
 lang_kb = ReplyKeyboardMarkup(
-    [["Русский 🇷🇺", "Қазақша 🇰🇿"]], resize_keyboard=True
+    [["Русский 🇷🇺", "Қазақша 🇰🇿"]],
+    resize_keyboard=True
 )
 
 anon_kb = ReplyKeyboardMarkup(
-    [["Анонимно", "Не анонимно"], ["Анонимді", "Анонимді емес"]],
-    resize_keyboard=True,
+    [
+        ["Анонимно / Анонимді"],
+        ["Не анонимно / Анонимді емес"]
+    ],
+    resize_keyboard=True
 )
 
 role_kb = ReplyKeyboardMarkup(
-    [["Ученик", "Родитель", "Учитель"],
-     ["Оқушы", "Ата-ана", "Мұғалім"]],
-    resize_keyboard=True,
+    [
+        ["Ученик / Оқушы"],
+        ["Родитель / Ата-ана"],
+        ["Учитель / Мұғалім"]
+    ],
+    resize_keyboard=True
 )
 
 class_kb = ReplyKeyboardMarkup(
     [[str(i) for i in range(1, 12)]],
-    resize_keyboard=True,
+    resize_keyboard=True
 )
 
 # --- START ---
@@ -48,7 +55,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=lang_kb
     )
 
-# --- MAIN HANDLER ---
+# --- ОБРАБОТКА ---
 async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text
@@ -58,7 +65,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     step = users[user_id]["step"]
 
-    # --- Язык ---
+    # --- 0 Язык ---
     if step == 0:
         users[user_id]["lang"] = "ru" if "Рус" in text else "kz"
         users[user_id]["step"] = 1
@@ -74,12 +81,13 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=anon_kb
             )
 
-    # --- Анонимность ---
+    # --- 1 Анонимность ---
     elif step == 1:
         users[user_id]["anon"] = text
-        users[user_id]["step"] = 2
 
-        if "не" in text.lower() or "емес" in text.lower():
+        if "Не анонимно" in text or "Анонимді емес" in text:
+            users[user_id]["step"] = 2
+
             if users[user_id]["lang"] == "ru":
                 await update.message.reply_text("Введите Ф.И.О:")
             else:
@@ -93,7 +101,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await update.message.reply_text("Рөліңізді таңдаңыз:", reply_markup=role_kb)
 
-    # --- ФИО ---
+    # --- 2 ФИО ---
     elif step == 2:
         users[user_id]["name"] = text
         users[user_id]["step"] = 3
@@ -103,11 +111,11 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text("Рөліңізді таңдаңыз:", reply_markup=role_kb)
 
-    # --- Роль ---
+    # --- 3 Роль ---
     elif step == 3:
         users[user_id]["role"] = text
 
-        if any(x in text.lower() for x in ["ученик", "родитель", "оқушы", "ата"]):
+        if "Ученик" in text or "Оқушы" in text or "Родитель" in text or "Ата-ана" in text:
             users[user_id]["step"] = 4
 
             if users[user_id]["lang"] == "ru":
@@ -123,7 +131,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await update.message.reply_text("Ұсыныстар мен шағымдар:")
 
-    # --- Класс ---
+    # --- 4 Класс ---
     elif step == 4:
         users[user_id]["class"] = text
         users[user_id]["step"] = 5
@@ -133,7 +141,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text("Ұсыныстар мен шағымдар:")
 
-    # --- Финал ---
+    # --- 5 Финал ---
     elif step == 5:
         users[user_id]["text"] = text
 
@@ -165,7 +173,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         del users[user_id]
 
 
-# --- APP ---
+# --- ЗАПУСК ---
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
